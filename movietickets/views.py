@@ -41,6 +41,15 @@ class MovieViewSet(viewsets.ModelViewSet):
     serializer_class = MovieSerializer
     queryset = Movie.objects.all()
 
+    @action(detail=False, methods=["get"])
+    def get_movie(self, request, format=None):
+        try:
+            movie_id = request.GET["movie_id"]
+            movie = Movie.objects.get(id=movie_id)
+            return Response(MovieSerializer(movie).data)
+        except Exception as e:
+            return JsonResponse({"error": str(e)})
+
     def list(self, request, pk=None):
         try:
             serializer = MovieSerializer(self.queryset, many=True)
