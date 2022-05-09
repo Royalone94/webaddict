@@ -1,11 +1,12 @@
 from django.shortcuts import render
 from rest_framework.views import APIView
-from rest_framework import permissions, status,viewsets
-from rest_framework.decorators import api_view, authentication_classes, permission_classes
+from rest_framework import permissions, status,viewsets, filters, generics
+from rest_framework.decorators import api_view, action, authentication_classes, permission_classes
 from rest_framework.response import Response
 from django.http import JsonResponse
-from rest_framework.authentication import TokenAuthentication
-from rest_framework.permissions import IsAuthenticated
+from django.contrib.auth.models import User
+from django.db.models import Q
+
 from .serializers import *
 
 # Create your views here.
@@ -18,12 +19,23 @@ def current_user(request):
 class UserList(APIView):
     permission_classes = (permissions.AllowAny,)
 
+    def get(self, request):
+        items = User.objects.all()
+        serializer = UserSerializer(items, many=True)
+        return Response(serializer.data)
+
     def post(self, request, format=None):
         serializer = UserSerializerWithToken(data=request.data)
         if serializer.is_valid():
             serializer.save()
             return Response(serializer.data, status=status.HTTP_201_CREATED)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class MovieSearchAPIView(generics.ListAPIView):
+    search_fields = ['name', 'description', 'cast', 'trailer', 'director']
+    filter_backends = (filters.SearchFilter,)
+    queryset = Movie.objects.all()
+    serializer_class = MovieSerializer
 
 class MovieViewSet(viewsets.ModelViewSet):
     serializer_class = MovieSerializer
@@ -47,3 +59,20 @@ class TicketViewSet(viewsets.ModelViewSet):
         except Exception as e:
             return JsonResponse({"error": str(e)})
 
+    @action(detail=True, methods=["put"])
+    def purchase_ticket(self, request, pk, format=None):
+        ticket = Ticket.objects.get(pk=pk)
+        ticket.user = request.user
+        ticket.save()
+        serializer = TicketSerializer(data=request.data)
+        return JsonResponse({"status": "success"})
+
+    @action(detail=False, methods=["get"])
+    def get_my_tickets(self, request, pk=None):
+        try:
+            q = Q(user=request.user)
+            queryset = self.queryset.filter(q)
+            serializer = TicketSerializer(queryset, many=True)
+            return Response(serializer.data)
+        except Exception as e:
+            return JsonResponse({"error": str(e)})

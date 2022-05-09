@@ -34,5 +34,6 @@ urlpatterns = [
     path('auth-jwt-refresh/', refresh_jwt_token),
     path('auth-jwt-verify/', verify_jwt_token),
     path('users/', UserList.as_view()),
+    path('search/', MovieSearchAPIView.as_view()),
     path('', include(router.urls)),
 ]

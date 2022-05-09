@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.db.models import Q
 
 lang_choice=(
 	('SPANISH','Spanish'),
@@ -15,7 +16,8 @@ class MovieQuerySet(models.query.QuerySet):
         lookup = (
             Q(name__icontains=query)|
             Q(director__icontains=query)|
-            Q(language__icontains=query)|
+            Q(description__icontains=query)|
+            Q(trailer__icontains=query)|
             Q(cast__icontains=query)
         )
         return self.filter(lookup).distinct()
@@ -53,14 +55,14 @@ class Ticket(models.Model):
         User,
         on_delete=models.CASCADE,
         related_name='user',
+        blank=True,
+        null=True
     )
     movie = models.ForeignKey(
         Movie,
         on_delete=models.CASCADE,
         related_name='movie',
     )
-    number = models.CharField(max_length=10)
-    time = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
